@@ -50,7 +50,9 @@ impl<'a> Paddle<'a> {
 
 struct Ball<'a> {
     rect: Rect,
+    initial_vel: Vec2,
     vel: Vec2,
+    speed_level: f32,
     texture: &'a Texture2D,
 }
 
@@ -63,7 +65,9 @@ impl<'a> Ball<'a> {
                 BALL_SIZE,
                 BALL_SIZE,
             ),
+            initial_vel: Vec2::new(300.0, 220.0),
             vel: Vec2::new(300.0, 220.0),
+            speed_level: 1.0,
             texture,
         }
     }
@@ -109,9 +113,31 @@ impl<'a> Ball<'a> {
         }
     }
 
+    fn increase_speed(&mut self) {
+        self.speed_level += 0.1;
+
+        self.speed_level = self.speed_level.min(2.0);
+    }
+
     fn reset(&mut self) {
         self.rect.x = WINDOW_W / 2.0 - BALL_SIZE / 2.0;
         self.rect.y = WINDOW_H / 2.0 - BALL_SIZE / 2.0;
+
+        if self.vel.x > 0.0 {
+            self.vel.x = -self.initial_vel.x * self.speed_level;
+        } else {
+            self.vel.x = self.initial_vel.x * self.speed_level;
+        }
+
+        self.vel.y = self.initial_vel.y * self.speed_level;
+    }
+
+    fn reset_game(&mut self) {
+        self.rect.x = WINDOW_W / 2.0 - BALL_SIZE / 2.0;
+        self.rect.y = WINDOW_H / 2.0 - BALL_SIZE / 2.0;
+
+        self.speed_level = 1.0;
+        self.vel = self.initial_vel;
     }
 }
 
@@ -204,8 +230,12 @@ impl<'a> Game<'a> {
                 self.right.update(dt, KeyCode::Up, KeyCode::Down);
                 self.ball.update(dt);
                 self.ball.check_paddles(&self.left, &self.right);
+
                 if self.score.update(&self.ball) {
+                    self.ball.increase_speed();
+
                     self.ball.reset();
+
                     if self.score.left >= WIN_SCORE {
                         self.winner = "Left player wins!".to_string();
                         self.game_state = GameState::GameOver;
@@ -218,7 +248,7 @@ impl<'a> Game<'a> {
             GameState::GameOver => {
                 if is_key_pressed(KeyCode::R) {
                     self.score = Score::default();
-                    self.ball.reset();
+                    self.ball.reset_game();
                     self.left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
                     self.right = Paddle::new(WINDOW_W - PADDLE_OFFSET - PADDLE_W, &paddle_texture);
                     self.game_state = GameState::Playing;
