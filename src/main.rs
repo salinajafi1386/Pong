@@ -48,14 +48,14 @@ impl<'a> Paddle<'a> {
     }
 }
 
-struct Ball {
+struct Ball<'a> {
     rect: Rect,
     vel: Vec2,
-    texture: Texture2D,
+    texture: &'a Texture2D,
 }
 
-impl Ball {
-    fn new(texture: Texture2D) -> Self {
+impl<'a> Ball<'a> {
+    fn new(texture: &'a Texture2D) -> Self {
         Self {
             rect: Rect::new(
                 WINDOW_W / 2.0 - BALL_SIZE / 2.0,
@@ -169,49 +169,79 @@ impl Score {
     }
 }
 
-#[macroquad::main(window_conf)]
-async fn main() {
-    let mut score = Score::default();
-    let mut game_state = GameState::Playing;
-    let mut winner = "";
-    let ball_texture = load_texture("assets/ball.png").await.unwrap();
-    let paddle_texture = load_texture("assets/paddle.png").await.unwrap();
-    let mut ball = Ball::new(ball_texture);
-    let mut left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
-    let mut right = Paddle::new(WINDOW_W - PADDLE_W - PADDLE_OFFSET, &paddle_texture);
+struct Game<'a> {
+    ball: Ball<'a>,
+    left: Paddle<'a>,
+    right: Paddle<'a>,
+    score: Score,
+    game_state: GameState,
+    winner: String,
+}
 
-    loop {
-        let dt = get_frame_time();
+impl<'a> Game<'a> {
+    fn new(paddle_texture: &'a Texture2D, ball_texture: &'a Texture2D) -> Self {
+        let score = Score::default();
+        let game_state = GameState::Playing;
+        let winner = "".to_string();
+        let ball = Ball::new(ball_texture);
+        let left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
+        let right = Paddle::new(WINDOW_W - PADDLE_W - PADDLE_OFFSET, &paddle_texture);
 
-        match game_state {
+        Self {
+            ball: ball,
+            left: left,
+            right: right,
+            score: score,
+            game_state: game_state,
+            winner: winner,
+        }
+    }
+
+    fn update(&mut self, dt: f32, paddle_texture: &'a Texture2D) {
+        match self.game_state {
+            GameState::Playing => {
+                self.left.update(dt, KeyCode::W, KeyCode::S);
+                self.right.update(dt, KeyCode::Up, KeyCode::Down);
+                self.ball.update(dt);
+                self.ball.check_paddles(&self.left, &self.right);
+                if self.score.update(&self.ball) {
+                    self.ball.reset();
+                    if self.score.left >= WIN_SCORE {
+                        self.winner = "Left player wins!".to_string();
+                        self.game_state = GameState::GameOver;
+                    } else if self.score.right >= WIN_SCORE {
+                        self.winner = "Right player wins!".to_string();
+                        self.game_state = GameState::GameOver;
+                    }
+                }
+            }
+            GameState::GameOver => {
+                if is_key_pressed(KeyCode::R) {
+                    self.score = Score::default();
+                    self.ball.reset();
+                    self.left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
+                    self.right = Paddle::new(WINDOW_W - PADDLE_OFFSET - PADDLE_W, &paddle_texture);
+                    self.game_state = GameState::Playing;
+                }
+            }
+        }
+    }
+
+    fn draw(&self) {
+        match self.game_state {
             GameState::Playing => {
                 clear_background(BLACK);
                 draw_centre_line();
 
-                left.update(dt, KeyCode::W, KeyCode::S);
-                right.update(dt, KeyCode::Up, KeyCode::Down);
-                ball.update(dt);
-                ball.check_paddles(&left, &right);
-                if score.update(&ball) {
-                    ball.reset();
-                    if score.left >= WIN_SCORE {
-                        winner = "Left player wins!";
-                        game_state = GameState::GameOver;
-                    } else if score.right >= WIN_SCORE {
-                        winner = "Right player wins!";
-                        game_state = GameState::GameOver;
-                    }
-                }
-
-                left.draw();
-                right.draw();
-                ball.draw();
-                score.draw();
+                self.left.draw();
+                self.right.draw();
+                self.ball.draw();
+                self.score.draw();
             }
             GameState::GameOver => {
-                let dims = measure_text(winner, None, 48, 1.0);
+                let dims = measure_text(&self.winner, None, 48, 1.0);
                 draw_text(
-                    winner,
+                    &self.winner,
                     WINDOW_W / 2.0 - dims.width / 2.0,
                     WINDOW_H / 2.0,
                     48.0,
@@ -227,16 +257,24 @@ async fn main() {
                     24.0,
                     GRAY,
                 );
-
-                if is_key_pressed(KeyCode::R) {
-                    score = Score::default();
-                    ball.reset();
-                    left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
-                    right = Paddle::new(WINDOW_W - PADDLE_OFFSET - PADDLE_W, &paddle_texture);
-                    game_state = GameState::Playing;
-                }
             }
         }
+    }
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
+    let ball_texture = load_texture("assets/ball.png").await.unwrap();
+    let paddle_texture = load_texture("assets/paddle.png").await.unwrap();
+
+    let mut game = Game::new(&paddle_texture, &ball_texture);
+
+    loop {
+        let dt = get_frame_time();
+
+        game.update(dt, &paddle_texture);
+
+        game.draw();
 
         next_frame().await;
     }
