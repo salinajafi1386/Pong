@@ -24,7 +24,7 @@ impl<'a> Paddle<'a> {
 
     fn draw(&self) {
         draw_texture_ex(
-            &self.texture,
+            self.texture,
             self.rect.x,
             self.rect.y,
             WHITE,
@@ -74,7 +74,7 @@ impl<'a> Ball<'a> {
 
     fn draw(&self) {
         draw_texture_ex(
-            &self.texture,
+            self.texture,
             self.rect.x,
             self.rect.y,
             WHITE,
@@ -156,15 +156,10 @@ fn draw_centre_line() {
     }
 }
 
+#[derive(Default)]
 struct Score {
     left: u32,
     right: u32,
-}
-
-impl Default for Score {
-    fn default() -> Self {
-        Self { left: 0, right: 0 }
-    }
 }
 
 enum GameState {
@@ -210,16 +205,16 @@ impl<'a> Game<'a> {
         let game_state = GameState::Playing;
         let winner = "".to_string();
         let ball = Ball::new(ball_texture);
-        let left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
-        let right = Paddle::new(WINDOW_W - PADDLE_W - PADDLE_OFFSET, &paddle_texture);
+        let left = Paddle::new(PADDLE_OFFSET, paddle_texture);
+        let right = Paddle::new(WINDOW_W - PADDLE_W - PADDLE_OFFSET, paddle_texture);
 
         Self {
-            ball: ball,
-            left: left,
-            right: right,
-            score: score,
-            game_state: game_state,
-            winner: winner,
+            ball,
+            left,
+            right,
+            score,
+            game_state,
+            winner,
         }
     }
 
@@ -249,8 +244,8 @@ impl<'a> Game<'a> {
                 if is_key_pressed(KeyCode::R) {
                     self.score = Score::default();
                     self.ball.reset_game();
-                    self.left = Paddle::new(PADDLE_OFFSET, &paddle_texture);
-                    self.right = Paddle::new(WINDOW_W - PADDLE_OFFSET - PADDLE_W, &paddle_texture);
+                    self.left = Paddle::new(PADDLE_OFFSET, paddle_texture);
+                    self.right = Paddle::new(WINDOW_W - PADDLE_OFFSET - PADDLE_W, paddle_texture);
                     self.game_state = GameState::Playing;
                 }
             }
