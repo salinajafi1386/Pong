@@ -163,6 +163,8 @@ struct Score {
 }
 
 enum GameState {
+    Menu { selected: usize },
+    Controls,
     Playing,
     GameOver,
 }
@@ -201,8 +203,9 @@ struct Game<'a> {
 
 impl<'a> Game<'a> {
     fn new(paddle_texture: &'a Texture2D, ball_texture: &'a Texture2D) -> Self {
+        let game_state = GameState::Menu { selected: 0 };
+
         let score = Score::default();
-        let game_state = GameState::Playing;
         let winner = "".to_string();
         let ball = Ball::new(ball_texture);
         let left = Paddle::new(PADDLE_OFFSET, paddle_texture);
@@ -219,7 +222,31 @@ impl<'a> Game<'a> {
     }
 
     fn update(&mut self, dt: f32, paddle_texture: &'a Texture2D) {
-        match self.game_state {
+        match &mut self.game_state {
+            GameState::Menu { selected } => {
+                if is_key_pressed(KeyCode::Down) && *selected < 3 {
+                    *selected += 1;
+                }
+
+                if is_key_pressed(KeyCode::Up) {
+                    *selected = (*selected).saturating_sub(1);
+                }
+
+                if is_key_pressed(KeyCode::Enter) {
+                    self.game_state = match selected {
+                        0 => GameState::Playing,
+                        1 => GameState::Playing,
+                        2 => GameState::Controls,
+                        3 => std::process::exit(0),
+                        _ => GameState::Menu { selected: 0 },
+                    }
+                }
+            }
+
+            GameState::Controls => {
+                todo!()
+            }
+
             GameState::Playing => {
                 self.left.update(dt, KeyCode::W, KeyCode::S);
                 self.right.update(dt, KeyCode::Up, KeyCode::Down);
@@ -254,6 +281,38 @@ impl<'a> Game<'a> {
 
     fn draw(&self) {
         match self.game_state {
+            GameState::Menu { selected } => {
+                clear_background(BLACK);
+
+                let dims = measure_text("Pong", None, 50, 1.0);
+                draw_text(
+                    "Pong",
+                    WINDOW_W / 2.0 - dims.width / 2.0,
+                    WINDOW_H * 1.0 / 7.0,
+                    50.0,
+                    SKYBLUE,
+                );
+
+                const MENU_ITEMS: [&str; 4] = ["Single Player", "Two Player", "Controls", "Exit"];
+
+                for (index, items) in MENU_ITEMS.iter().enumerate() {
+                    let counter = index as f32 + 2.0;
+
+                    let dims = measure_text(items, None, 30, 1.0);
+                    draw_text(
+                        items,
+                        WINDOW_W / 2.0 - dims.width / 2.0,
+                        WINDOW_H * counter / 7.0,
+                        30.0,
+                        if index == selected { YELLOW } else { GREEN },
+                    );
+                }
+            }
+
+            GameState::Controls => {
+                todo!()
+            }
+
             GameState::Playing => {
                 clear_background(BLACK);
                 draw_centre_line();
@@ -263,6 +322,7 @@ impl<'a> Game<'a> {
                 self.ball.draw();
                 self.score.draw();
             }
+
             GameState::GameOver => {
                 let dims = measure_text(&self.winner, None, 48, 1.0);
                 draw_text(
