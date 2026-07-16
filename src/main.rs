@@ -244,7 +244,9 @@ impl<'a> Game<'a> {
             }
 
             GameState::Controls => {
-                todo!()
+                if is_key_pressed(KeyCode::Escape) {
+                    self.game_state = GameState::Menu { selected: 0 };
+                }
             }
 
             GameState::Playing => {
@@ -310,7 +312,109 @@ impl<'a> Game<'a> {
             }
 
             GameState::Controls => {
-                todo!()
+                clear_background(BLACK);
+
+                let dims = measure_text("CONTROLS", None, 50, 1.0);
+                draw_text(
+                    "CONTROLS",
+                    WINDOW_W / 2.0 - dims.width / 2.0,
+                    WINDOW_H * 1.0 / 12.0,
+                    50.0,
+                    SKYBLUE,
+                );
+
+                const PLAYER_ITEMS: [&str; 2] = [("Left Player"), ("Right Player")];
+
+                for (index, items) in PLAYER_ITEMS.iter().enumerate() {
+                    let counter = index as f32 + 1.0;
+
+                    draw_text(
+                        items,
+                        WINDOW_W * 0.15,
+                        WINDOW_H * counter / 5.0,
+                        32.0,
+                        YELLOW,
+                    );
+                }
+
+                const LEFT_PLAYER_ITEMS: [(&str, &str); 2] = [("W", "Move Up"), ("S", "Move Down")];
+
+                for (index, (key, action)) in LEFT_PLAYER_ITEMS.iter().enumerate() {
+                    let counter = index as f32 + 5.0;
+
+                    draw_text(
+                        key,
+                        WINDOW_W * 0.15,
+                        WINDOW_H * counter / 20.0,
+                        24.0,
+                        ORANGE,
+                    );
+
+                    draw_text(
+                        action,
+                        WINDOW_W * 0.35,
+                        WINDOW_H * counter / 20.0,
+                        24.0,
+                        WHITE,
+                    );
+                }
+
+                const RIGHT_PLAYER_ITEMS: [(&str, &str); 2] =
+                    [("Up Arrow", "Move Up"), ("Down Arrow", "Move Down")];
+
+                for (index, (key, action)) in RIGHT_PLAYER_ITEMS.iter().enumerate() {
+                    let counter = index as f32 + 9.0;
+
+                    draw_text(
+                        key,
+                        WINDOW_W * 0.15,
+                        WINDOW_H * counter / 20.0,
+                        24.0,
+                        ORANGE,
+                    );
+
+                    draw_text(
+                        action,
+                        WINDOW_W * 0.35,
+                        WINDOW_H * counter / 20.0,
+                        24.0,
+                        WHITE,
+                    );
+                }
+
+                const GENERAL_ITEMS: [(&str, &str); 3] = [
+                    ("Enter", "Select"),
+                    ("Esc", "Back to Menu"),
+                    ("R", "Restart Game"),
+                ];
+
+                for (index, (key, action)) in GENERAL_ITEMS.iter().enumerate() {
+                    let counter = index as f32 + 13.0;
+
+                    draw_text(
+                        key,
+                        WINDOW_W * 0.15,
+                        WINDOW_H * counter / 20.0,
+                        24.0,
+                        ORANGE,
+                    );
+
+                    draw_text(
+                        action,
+                        WINDOW_W * 0.35,
+                        WINDOW_H * counter / 20.0,
+                        24.0,
+                        WHITE,
+                    );
+                }
+
+                draw_text(
+                    "Press ESC to return",
+                    WINDOW_W * 0.15,
+                    WINDOW_H * 18.0 / 20.0,
+                    22.0,
+                    GRAY,
+                );
             }
 
             GameState::Playing => {
